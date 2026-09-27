@@ -270,6 +270,31 @@ export interface LeagueStandingsEntry {
 }
 
 // ============================================================
+// Global Leaderboard (GET /api/v1/leaderboard)
+// ============================================================
+
+export type LeaderboardMode = "overall" | "gameweek";
+
+export interface LeaderboardEntry {
+  /** Competition rank: equal points share a rank (1, 2, 2, 4) */
+  rank: number;
+  squadId: string;
+  squadName: string;
+  userId: string;
+  username: string;
+  points: number;
+  isCurrentUser: boolean;
+}
+
+export interface LeaderboardData {
+  mode: LeaderboardMode;
+  gameweek: { id: number; name: string } | null;
+  entries: LeaderboardEntry[];
+  /** The signed-in viewer's best squad and the unfiltered page it appears on */
+  viewer: { rank: number; page: number; squadId: string; points: number } | null;
+}
+
+// ============================================================
 // Live Matchday Feed (GET /api/v1/leagues/:id/live, Server-Sent Events)
 // ============================================================
 
@@ -469,3 +494,32 @@ export interface GameweekTimeline {
   };
   generatedAt: string;
 }
+
+// ============================================================
+// Toast Notification Types
+// ============================================================
+
+export type ToastType = "success" | "error" | "info" | "warning";
+
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
+export interface ToastOptions {
+  id?: string;
+  title?: string;
+  duration?: number;
+  action?: ToastAction;
+}
+
+export interface ToastItem {
+  id: string;
+  type: ToastType;
+  message: string;
+  title?: string;
+  duration: number;
+  action?: ToastAction;
+  createdAt: number;
+}
+

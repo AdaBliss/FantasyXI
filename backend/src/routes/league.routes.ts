@@ -17,12 +17,16 @@ import {
 } from "../controllers/league.controller.js";
 import { requireAuth, requirePermission, optionalAuth } from "../middleware/authMiddleware.js";
 import { Permission } from "../types/index.js";
+import { requireAuth, requireRole, optionalAuth } from "../middleware/authMiddleware.js";
+import { UserRole } from "../types/index.js";
+import { authenticatedRateLimiter, mutationRateLimiter } from "../middleware/rateLimiter.js";
 import { primaryReads } from "../middleware/readConsistency.js";
 
 const router = Router();
 
 // POST /api/v1/leagues (Protected: creator identity derived from token)
 router.post("/", requireAuth, requirePermission(Permission.LEAGUE_CREATE), createLeague);
+router.post("/", requireAuth, authenticatedRateLimiter, mutationRateLimiter, createLeague);
 
 // GET /api/v1/leagues (Public: search leagues; private leagues only for creator/members)
 router.get("/", optionalAuth, getLeagues);
@@ -43,6 +47,7 @@ router.get("/:id", optionalAuth, getLeagueById);
 
 // POST /api/v1/leagues/:id/join (Protected: member identity derived from token)
 router.post("/:id/join", requireAuth, requirePermission(Permission.LEAGUE_JOIN), joinLeague);
+router.post("/:id/join", requireAuth, authenticatedRateLimiter, mutationRateLimiter, joinLeague);
 
 // GET /api/v1/leagues/:id/members (Public: view league member list)
 router.get("/:id/members", getLeagueMembers);
@@ -55,6 +60,7 @@ router.get("/:id/h2h-standings", getH2HStandings);
 
 // POST /api/v1/leagues/:id/cancel (Protected: creator only)
 router.post("/:id/cancel", requireAuth, requirePermission(Permission.LEAGUE_CANCEL_OWN), cancelLeague);
+router.post("/:id/cancel", requireAuth, authenticatedRateLimiter, mutationRateLimiter, cancelLeague);
 
 // Private league invitations (Protected: creator only)
 router.post(
@@ -122,11 +128,21 @@ router.get(
   requirePermission(Permission.SETTLEMENT_READ),
   getSettlementPlan
 );
+router.get("/:leagueId/payment-requirement", requireAuth, authenticatedRateLimiter, getPaymentRequirement);
+router.post("/:leagueId/submit-payment", requireAuth, authenticatedRateLimiter, mutationRateLimiter, submitPayment);
+router.post("/:leagueId/verify-payment", requireAuth, authenticatedRateLimiter, mutationRateLimiter, verifyPayment);
+router.get("/:leagueId/settlement-plan", requireAuth, authenticatedRateLimiter, getSettlementPlan);
+router.get("/:leagueId/payment-requirement", primaryReads, requireAuth, getPaymentRequirement);
+router.post("/:leagueId/submit-payment", requireAuth, submitPayment);
+router.post("/:leagueId/verify-payment", requireAuth, verifyPayment);
+router.get("/:leagueId/settlement-plan", primaryReads, requireAuth, getSettlementPlan);
 router.get(
   "/:leagueId/reconcile",
   primaryReads,
   requireAuth,
   requirePermission(Permission.FINANCIAL_RECONCILE),
+  authenticatedRateLimiter,
+  requireRole(UserRole.ADMIN, UserRole.MODERATOR),
   reconcileLeague
 );
 

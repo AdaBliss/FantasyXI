@@ -10,6 +10,11 @@ import {
 import { requireAuth, requirePermission } from "../middleware/authMiddleware.js";
 import { Permission } from "../types/index.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
+import { requireAuth } from "../middleware/authMiddleware.js";
+import {
+  authRateLimiter,
+  authenticatedRateLimiter,
+} from "../middleware/rateLimiter.js";
 
 const router = Router();
 
@@ -29,6 +34,10 @@ router.get(
   requirePermission(Permission.AFFILIATE_READ_OWN),
   getUserReferralCode
 );
+router.get("/me", requireAuth, authenticatedRateLimiter, getMe);
+
+// GET /api/v1/auth/referral-code (Protected)
+router.get("/referral-code", requireAuth, authenticatedRateLimiter, getUserReferralCode);
 
 // GET /api/v1/auth/google (Initiates Google OAuth redirect)
 router.get("/google", authRateLimiter, initiateGoogleAuth);
