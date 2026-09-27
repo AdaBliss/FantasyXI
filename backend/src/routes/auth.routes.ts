@@ -7,6 +7,9 @@ import {
   handleGoogleCallback,
   getUserReferralCode,
 } from "../controllers/auth.controller.js";
+import { requireAuth, requirePermission } from "../middleware/authMiddleware.js";
+import { Permission } from "../types/index.js";
+import { authRateLimiter } from "../middleware/rateLimiter.js";
 import { requireAuth } from "../middleware/authMiddleware.js";
 import {
   authRateLimiter,
@@ -22,6 +25,15 @@ router.post("/register", authRateLimiter, register);
 router.post("/login", authRateLimiter, login);
 
 // GET /api/v1/auth/me (Protected)
+router.get("/me", requireAuth, requirePermission(Permission.PROFILE_READ), getMe);
+
+// GET /api/v1/auth/referral-code (Protected)
+router.get(
+  "/referral-code",
+  requireAuth,
+  requirePermission(Permission.AFFILIATE_READ_OWN),
+  getUserReferralCode
+);
 router.get("/me", requireAuth, authenticatedRateLimiter, getMe);
 
 // GET /api/v1/auth/referral-code (Protected)
