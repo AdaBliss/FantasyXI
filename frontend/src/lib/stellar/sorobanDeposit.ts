@@ -1,13 +1,13 @@
 /**
- * Frontend Soroban Escrow Deposit Helper
+ * Frontend Soroban Escrow Deposit Helper (Issue #85)
  *
- * Implements the canonical client-side Soroban deposit workflow:
- * 1. Wallet adapter connection & signing
+ * Implements the canonical client-side Soroban deposit workflow for Freighter wallets:
+ * 1. Freighter wallet adapter connection & signing (`WalletContext.tsx`)
  * 2. Building the Soroban invocation transaction: `deposit(participant, league_id)`
- * 3. Simulating/preparing the transaction via Soroban RPC
- * 4. Requesting user signature via Freighter (`signTransaction`)
- * 5. Submitting the signed transaction to Stellar Testnet
- * 6. Polling for on-chain confirmation and returning the transaction hash
+ * 3. Simulating/preparing transaction footprints via Soroban RPC
+ * 4. Requesting user signature via Freighter browser extension (`signTransaction`)
+ * 5. Submitting the signed XDR transaction to Stellar Testnet
+ * 6. Polling for on-chain ledger confirmation and returning the transaction hash
  */
 
 import {

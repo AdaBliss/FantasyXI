@@ -77,6 +77,9 @@ pub enum DataKey {
     ClaimablePrize(u64, Address),
 }
 
+/// # Issue #83: Soroban Escrow Smart Contract for Fantasy Leagues
+/// Provides non-custodial holding of USDC entry fee deposits for competition partitions.
+/// Ensures trustless settlement, prize claim storage, and refund mechanisms.
 #[contract]
 pub struct FantasyXIEscrow;
 
@@ -657,6 +660,22 @@ impl FantasyXIEscrow {
             );
         }
         result.unwrap_or(0)
+    }
+
+    /// Returns the total aggregated prize pool balance (in atomic units/USDC) for a specific league.
+    /// Handles non-existent leagues gracefully by returning 0.
+    pub fn get_prize_pool(env: Env, league_id: u64) -> i128 {
+        let key = DataKey::League(league_id);
+        if let Some(league) = env.storage().persistent().get::<_, LeagueState>(&key) {
+            env.storage().persistent().extend_ttl(
+                &key,
+                PERSISTENT_LIFETIME_THRESHOLD,
+                PERSISTENT_BUMP_AMOUNT,
+            );
+            league.total_deposited
+        } else {
+            0
+        }
     }
 
     /// Winner claims their prize for a settled league.
@@ -1282,5 +1301,31 @@ mod test {
         // A doomed upgrade must not disturb existing state
         let league = client.get_league(&811).unwrap();
         assert_eq!(league.participant_count, 0);
+    }
+
+    #[test]
+    fn test_get_prize_pool() {
+        let (env, creator, token, client) = setup_test();
+        let user1 = Address::generate(&env);
+        let user2 = Address::generate(&env);
+
+        let token_admin_client = token::StellarAssetClient::new(&env, &token);
+        token_admin_client.mint(&user1, &100_000_000);
+        token_admin_client.mint(&user2, &100_000_000);
+
+        // 1. Querying non-existent league returns 0 gracefully
+        assert_eq!(client.get_prize_pool(&99999), 0);
+
+        // 2. Newly created league starts with 0 prize pool
+        client.create_league(&creator, &900, &50_000_000, &token);
+        assert_eq!(client.get_prize_pool(&900), 0);
+
+        // 3. First deposit updates total prize pool to 50_000_000 (5 USDC)
+        client.deposit(&user1, &900);
+        assert_eq!(client.get_prize_pool(&900), 50_000_000);
+
+        // 4. Second deposit aggregates to 100_000_000 (10 USDC)
+        client.deposit(&user2, &900);
+        assert_eq!(client.get_prize_pool(&900), 100_000_000);
     }
 }
