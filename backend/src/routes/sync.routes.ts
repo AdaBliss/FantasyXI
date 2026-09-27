@@ -4,6 +4,8 @@ import {
   syncFixtures,
   syncGameweekLive,
 } from "../controllers/sync.controller.js";
+import { requireAuth, requirePermission } from "../middleware/authMiddleware.js";
+import { Permission } from "../types/index.js";
 import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
 import { UserRole } from "../types/index.js";
 import { authenticatedRateLimiter, mutationRateLimiter } from "../middleware/rateLimiter.js";
@@ -12,9 +14,10 @@ const router = Router();
 
 // ============================================================
 // Admin-only FPL synchronization endpoints
-// Global sync triggers mutate shared data and are restricted to
-// ADMIN / MODERATOR roles via RBAC.
+// Global sync triggers mutate shared data and require the fpl:sync
+// permission (ADMIN, MODERATOR and SERVICE roles).
 // ============================================================
+router.use(requireAuth, requirePermission(Permission.FPL_SYNC));
 router.use(
   requireAuth,
   authenticatedRateLimiter,

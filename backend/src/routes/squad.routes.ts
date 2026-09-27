@@ -8,12 +8,18 @@ import {
   calculateGameweekScore,
   activateChip,
 } from "../controllers/squad.controller.js";
+import { requireAuth, requirePermission } from "../middleware/authMiddleware.js";
+import { Permission } from "../types/index.js";
 import { requireAuth } from "../middleware/authMiddleware.js";
 import { authenticatedRateLimiter, mutationRateLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
 
 // POST /api/v1/squads (Protected)
+router.post("/", requireAuth, requirePermission(Permission.SQUAD_CREATE), createSquad);
+
+// GET /api/v1/squads/me (Protected: returns authenticated user's squads)
+router.get("/me", requireAuth, requirePermission(Permission.SQUAD_READ_OWN), getMySquads);
 router.post("/", requireAuth, authenticatedRateLimiter, mutationRateLimiter, createSquad);
 
 // GET /api/v1/squads/me (Protected: returns authenticated user's squads)
@@ -23,6 +29,10 @@ router.get("/me", requireAuth, authenticatedRateLimiter, getMySquads);
 router.get("/:id", getSquadById);
 
 // PUT /api/v1/squads/:id (Protected: update user's own squad)
+router.put("/:id", requireAuth, requirePermission(Permission.SQUAD_UPDATE_OWN), updateSquad);
+
+// POST /api/v1/squads/:id/chip (Protected: play a chip before the gameweek deadline)
+router.post("/:id/chip", requireAuth, requirePermission(Permission.SQUAD_UPDATE_OWN), activateChip);
 router.put("/:id", requireAuth, authenticatedRateLimiter, mutationRateLimiter, updateSquad);
 
 // POST /api/v1/squads/:id/chip (Protected: play a chip before the gameweek deadline)
@@ -32,6 +42,12 @@ router.post("/:id/chip", requireAuth, authenticatedRateLimiter, mutationRateLimi
 router.get("/user/:userId", getUserSquads);
 
 // POST /api/v1/squads/:id/calculate-score/:gameweekId
-router.post("/:id/calculate-score/:gameweekId", calculateGameweekScore);
+// (Operations: persisted scores feed standings, so only ADMIN / SERVICE may trigger it)
+router.post(
+  "/:id/calculate-score/:gameweekId",
+  requireAuth,
+  requirePermission(Permission.SCORE_CALCULATE),
+  calculateGameweekScore
+);
 
 export default router;
